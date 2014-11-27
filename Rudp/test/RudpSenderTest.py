@@ -7,18 +7,18 @@ import unittest
 import ntpath
 from random import randint
 
-from RudpSender import FileSender
+from Rudp import RudpSender
 
 
 class TestSequenceFunctions(unittest.TestCase):
     def testPathExtract(self):
         fileName = "/home/someting/filename.extension"
-        extracted = FileSender.processFileName(fileName)
+        extracted = RudpSender.FileSender.processFileName(fileName)
         print str(extracted)
         self.assertEqual(extracted, "filename.extension", "")
 
         fileName = "filename.extension"
-        extracted = FileSender.processFileName(fileName)
+        extracted = RudpSender.FileSender.processFileName(fileName)
         print str(extracted)
         self.assertEqual(extracted, "filename.extension", "")
 

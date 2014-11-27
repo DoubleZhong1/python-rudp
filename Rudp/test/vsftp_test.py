@@ -6,40 +6,40 @@ Created on May 12, 2013
 
 import unittest
 
-from vsftp import VsPacket
+from Rudp import vsftp
 
 
 class TestSequenceFunctions(unittest.TestCase):
     def testPacketTypeBegin(self):
-        vsFtpPacket = VsPacket()
-        vsFtpPacket.type = VsPacket.TYPE_BEGIN
+        vsFtpPacket = vsftp.VsPacket()
+        vsFtpPacket.type = vsftp.VsPacket.TYPE_BEGIN
         vsFtpPacket.data = "this must be a file name"
         packed = vsFtpPacket.pack()
 
-        packet2 = VsPacket().unpack(packed)
+        packet2 = vsftp.VsPacket().unpack(packed)
         self.assertEqual(vsFtpPacket.type, packet2.type,
                          "Type were not the same " + self._printPackets(vsFtpPacket, packet2))
         self.assertEqual(vsFtpPacket.data, packet2.data,
                          "Data was not the same " + self._printPackets(vsFtpPacket, packet2))
 
     def testPacketTypeData(self):
-        vsFtpPacket = VsPacket()
-        vsFtpPacket.type = VsPacket.TYPE_DATA
+        vsFtpPacket = vsftp.VsPacket()
+        vsFtpPacket.type = vsftp.VsPacket.TYPE_DATA
         vsFtpPacket.data = "this must be a file name"
         packed = vsFtpPacket.pack()
 
-        packet2 = VsPacket().unpack(packed)
+        packet2 = vsftp.VsPacket().unpack(packed)
         self.assertEqual(vsFtpPacket.type, packet2.type,
                          "Type were not the same," + self._printPackets(vsFtpPacket, packet2))
         self.assertEqual(vsFtpPacket.data, packet2.data,
                          "Data was not the same " + self._printPackets(vsFtpPacket, packet2))
 
     def testPacketTypeEnd(self):
-        vsFtpPacket = VsPacket()
-        vsFtpPacket.type = VsPacket.TYPE_END
+        vsFtpPacket = vsftp.VsPacket()
+        vsFtpPacket.type = vsftp.VsPacket.TYPE_END
         packed = vsFtpPacket.pack()
 
-        packet2 = VsPacket().unpack(packed)
+        packet2 = vsftp.VsPacket().unpack(packed)
         self.assertEqual(vsFtpPacket.type, packet2.type,
                          "Type were not the same," + self._printPackets(vsFtpPacket, packet2))
         self.assertEqual(vsFtpPacket.data, packet2.data,
