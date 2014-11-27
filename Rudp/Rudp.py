@@ -433,7 +433,7 @@ class RudpPacket:
     TYPE_FIN  = 5
     
     #
-    # Feilds:
+    # Fields:
     # vesion:
     # length
     # sequence number
