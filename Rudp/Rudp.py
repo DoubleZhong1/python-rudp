@@ -81,6 +81,7 @@ class RudpSocket:
     PARAM_WINDOWS_SIZE_MAX = 3
     PARAM_RETIRES_MAX = 50
     FAKE_LOSS = 0  # In scale 1-5, where 5 = 50% loss
+
     packetloss = 0
     packetsSentData = 0
     packetsSentControl = 0
