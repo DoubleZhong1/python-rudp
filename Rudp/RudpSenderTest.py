@@ -1,8 +1,8 @@
-'''
+"""
 Created on May 12, 2013
 
 @author: saulius
-'''
+"""
 import unittest
 import ntpath
 from RudpSender import FileSender

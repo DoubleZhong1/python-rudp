@@ -1,8 +1,8 @@
-'''
+"""
 Created on May 12, 2013
 
 @author: SauliusAlisauskas
-'''
+"""
 
 import unittest
 from vsftp import VsPacket

@@ -1,14 +1,13 @@
-'''
+"""
 Created on May 10, 2013
 
 @author: Saulius Alisauskas
-'''
+"""
 
 import Rudp
 import Event
 import sys
 import ntpath
-import time
 from vsftp import VsPacket
 import Logging
 import re
@@ -40,20 +39,20 @@ class FileSender:
         vsFtpPacket = VsPacket()
         vsFtpPacket.type = VsPacket.TYPE_BEGIN
         vsFtpPacket.data = FileSender.processFileName(self.fileName)
-        if self.rudpSocket.sendToAll(vsFtpPacket.pack()) == False:
+        if not self.rudpSocket.sendToAll(vsFtpPacket.pack()):
             print "Transmission error, quiting"
             sys.exit()
         
-    def handleFileDataAvailable(self, fd, fileToSend):      
+    def handleFileDataAvailable(self, _, fileToSend):
         data = fileToSend.read(800)
         if data:
             vsFtpPacket = VsPacket()
             vsFtpPacket.type = VsPacket.TYPE_DATA
             vsFtpPacket.data = data
-            if self.rudpSocket.sendToAll(vsFtpPacket.pack()) == False:
+            if not self.rudpSocket.sendToAll(vsFtpPacket.pack()):
                 print "Transmission error, quiting"
-                sys.exit()   
-            self.packetcount  = self.packetcount + 1
+                sys.exit()
+            self.packetcount += 1
             print "### " + str(self.packetcount)
             #time.sleep(0)
         else:
@@ -61,7 +60,7 @@ class FileSender:
             vsFtpPacket = VsPacket()
             vsFtpPacket.type = VsPacket.TYPE_END
             vsFtpPacket.data = data
-            if self.rudpSocket.sendToAll(vsFtpPacket.pack()) == False:
+            if not self.rudpSocket.sendToAll(vsFtpPacket.pack()):
                 print "Transmission error, quiting"
             Event.eventFdDelete(self.handleFileDataAvailable, fileToSend)
             print "File " + self.fileName + " sent"

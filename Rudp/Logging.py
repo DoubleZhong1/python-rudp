@@ -1,8 +1,8 @@
-'''
+"""
 Created on May 12, 2013
 
 @author: saulius
-'''
+"""
 from datetime import datetime
 
 class Logger:
@@ -35,6 +35,9 @@ class Logger:
             Logger.file.write(formatedMessage + "\n")
         
 class Level:
+    def __init__(self):
+        pass
+
     ERROR = 0
     INFO = 1
     DEBUG = 2

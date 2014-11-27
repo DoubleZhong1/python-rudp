@@ -1,11 +1,10 @@
-'''
+"""
 Created on May 10, 2013
 
 @author: saulius
-'''
+"""
 import time
 import select
-import sys
 
 TYPE_TIMEOUT = 1
 TYPE_CLOSED = 2
@@ -59,8 +58,8 @@ def eventLoop():
             if event.type == EVENT_TYPE_FD :
                 #print "Found:" + str(event)
                 # Check if we have some data available
-                oRead, [],  [] = select.select([event.fd], [], [], 0) # 0 - means polling, othewrise timeout time in seconds
-                if len(oRead) > 0:
+                read_fds, write_fds, error_fds = select.select([event.fd], [], [], 0) # 0 - means polling, otherwise timeout time in seconds
+                if len(read_fds) > 0:
                     event.callback(event.fd, event.argument)
                 else:
                     #sys.stdout.write('.')

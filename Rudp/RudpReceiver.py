@@ -1,8 +1,8 @@
-'''
+"""
 Created on May 10, 2013
 
 @author: Saulius Alisauskas
-'''
+"""
 import Rudp
 import Event
 from vsftp import VsPacket
@@ -72,6 +72,9 @@ class Receiver:
         pass
 
 class FileInfo:
+    def __init__(self):
+        pass
+
     sender = None
     filename = None
     filehandle = None
@@ -88,4 +91,3 @@ if __name__ == '__main__':
 #    data, addr = sock.recvfrom(1024) # set buffer size
 #    rudpPacket = RudpPacket().unpack(data)
 #    print "Received RUDP packet:" + str(rudpPacket) + " from:" + str(addr)
-    

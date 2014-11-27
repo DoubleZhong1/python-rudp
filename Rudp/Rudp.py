@@ -1,13 +1,12 @@
-'''
+"""
 Created on May 10, 2013
 
 @author: Saulius Alisauskas
-'''
+"""
 import socket
 import struct
-import json
 import Event
-import sys
+
 from random import randint
 from Logging import Logger
 from Logging import Level
@@ -56,7 +55,7 @@ def registerEventHandler(rudpSocket, handler):
     rudpSocket.eventHandler = handler
     pass
 
-def handleDataAvailable(fd, rudpSocket):
+def handleDataAvailable(_, rudpSocket):
     #print "Received data on fd:" + str(fd)
     #TODO: read data from rudpSocket
     for rs in rudpSockets:
@@ -84,19 +83,19 @@ class RudpSocket:
     packetFakeLoss = 0
     
     def registerPacketLoss(self):
-        self.packetloss = self.packetloss + 1
+        self.packetloss += 1
     def registerDataPacketSent(self):
-        self.packetsSentData = self.packetsSentData + 1
+        self.packetsSentData += 1
     def registerControlPacketSent(self):
-        self.packetsSentControl = self.packetsSentControl + 1
+        self.packetsSentControl += 1
     def registerPacketReceived(self):
-        self.packetsReceived = self.packetsReceived + 1
+        self.packetsReceived += 1
     def registerPacketReceivedData(self):
-        self.packetsReceivedData = self.packetsReceivedData + 1
+        self.packetsReceivedData += 1
     def registerPacketReceivedIgnored(self):
-        self.packetsReceivedIgnored = self.packetsReceivedIgnored + 1
+        self.packetsReceivedIgnored += 1
     def registerFakeLoss(self):
-        self.packetFakeLoss = self.packetFakeLoss + 1
+        self.packetFakeLoss += 1
     
     def __init__(self, socket):
         self.socket = socket
@@ -146,7 +145,7 @@ class RudpSocket:
     
     def sendPacketControl(self, address, rudpPacket):
         if self.closed:
-            logger.log(Level.ERROR, "Tried to send on a close socket");
+            logger.log(Level.ERROR, "Tried to send on a close socket")
             return False
         self.socket.sendto(rudpPacket.pack(), address)
         logger.log(Level.TRACE, "")
@@ -156,7 +155,7 @@ class RudpSocket:
     
     def sendPacketData(self, address, rudpPacket):
         if self.closed:
-            logger.log(Level.ERROR, "Tried to send on a close socket");
+            logger.log(Level.ERROR, "Tried to send on a close socket")
             return False
         self.socket.sendto(rudpPacket.pack(), address)
         logger.log(Level.TRACE, "")
@@ -211,7 +210,7 @@ class RudpSocket:
                 logger.log(Level.ERROR, "Received unexpected packet " + str(self))
                 ''' This might happen if sender didn't receive our ACK, so we can simply resend ACK,'''
                 ''' But only if no DATA packets have been received'''
-                if (sender.nextReceivingSequenceNumber == 0):
+                if sender.nextReceivingSequenceNumber == 0:
                     packet = RudpPacket()
                     packet.type = RudpPacket.TYPE_ACK
                     packet.seqnum = rudpPacket.seqnum + 1
@@ -269,8 +268,9 @@ class RudpSocket:
                 self.registerPacketReceivedIgnored()
             pass   
         pass
-    
-    def generateSynPacket(self):       
+
+    @staticmethod
+    def generateSynPacket():
         packet = RudpPacket()
         packet.type = RudpPacket.TYPE_SYN
         packet.seqnum = randint(100,100000)
@@ -316,7 +316,7 @@ class RudpSocketPeer:
         packet.data = data
         packet.seqnum = self.nextBufferPacketSeqNumber        
         self.dataBuffer.append(packet)
-        self.nextBufferPacketSeqNumber = self.nextBufferPacketSeqNumber + 1
+        self.nextBufferPacketSeqNumber += 1
         logger.log(Level.TRACE, "Buffer has packets:" + str(len(self.dataBuffer)))
         return True
     def __handleTimeoutSYN(self, packetSequenceNumber):
@@ -347,7 +347,7 @@ class RudpSocketPeer:
             self.window = 1 if self.window - 1 < 1 else self.window - 1
             self.nextSendingPacketSeqNumber = rudpSecNum
             self.__emptyBuffer()
-            self.retries = self.retries + 1  
+            self.retries += 1
     
     def close(self):
         ''' Order to close the socket'''
@@ -388,7 +388,7 @@ class RudpSocketPeer:
             logger.log(Level.DEBUG, "ACK CORRECT")
             Event.eventTimeoutDelete(self.__handleTimeoutData, ackPacket.seqnum - 1)
             self.nextAckSeqNumber = ackPacket.seqnum + 1
-            self.window = self.window + 1
+            self.window += 1
             self.__emptyBuffer()
             self.__resetRetries()            
             self.__checkClose() 
@@ -406,12 +406,12 @@ class RudpSocketPeer:
             while self.window > 0 and len(self.dataBuffer) > 0 and len(self.dataBuffer) > self.nextSendingPacketSeqNumber:            
                 packet = self.dataBuffer[self.nextSendingPacketSeqNumber]
                 self.rudpSocket.sendPacketData(self.addr, packet)
-                self.nextSendingPacketSeqNumber = self.nextSendingPacketSeqNumber + 1
-                self.window = self.window - 1
+                self.nextSendingPacketSeqNumber += 1
+                self.window -= 1
                 Event.eventTimeout(RudpSocket.PARAM_TIMEOUT, self.__handleTimeoutData, packet.seqnum, "DATA Timeout")
     
     def __incrementRetries(self):
-        self.retries = self.retries + 1
+        self.retries += 1
         self.rudpSocket.registerPacketLoss() 
         if self.retries > RudpSocket.PARAM_RETIRES_MAX:
             logger.log(Level.ERROR, "Maximum number of " + str(RudpSocket.PARAM_RETIRES_MAX) + " retries reached")
