@@ -1,4 +1,4 @@
 python-rudp
 ===========
 
-This is a reliable UDP protocol written with Python. Project contais protocol impelementation, demo applications for sending and receiving files. 
+This is a reliable UDP protocol written with Python. Project contains protocol implementation, and demo applications for sending and receiving files. 
