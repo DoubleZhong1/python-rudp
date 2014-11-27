@@ -8,9 +8,7 @@ import sys
 import ntpath
 import re
 
-import Rudp
-import Event
-from vsftp import VsPacket
+from Rudp import Rudp, Event, vsftp
 import Logging
 
 
@@ -36,11 +34,11 @@ class FileSender:
 
         fileToSend = open(self.fileName)
         Event.eventFd(fileToSend.fileno(), self.handleFileDataAvailable, fileToSend, "FileDataAvailable")
-        print "Openned fileToSend DF:" + str(fileToSend.fileno()) + " name: " + str(self.fileName)
+        print "Opened fileToSend DF:" + str(fileToSend.fileno()) + " name: " + str(self.fileName)
 
         ''' Send BEGIN packet'''
-        vsFtpPacket = VsPacket()
-        vsFtpPacket.type = VsPacket.TYPE_BEGIN
+        vsFtpPacket = vsftp.VsPacket()
+        vsFtpPacket.type = vsftp.VsPacket.TYPE_BEGIN
         vsFtpPacket.data = FileSender.processFileName(self.fileName)
         if not self.rudpSocket.sendToAll(vsFtpPacket.pack()):
             print "Transmission error, quiting"
@@ -49,8 +47,8 @@ class FileSender:
     def handleFileDataAvailable(self, _, fileToSend):
         data = fileToSend.read(800)
         if data:
-            vsFtpPacket = VsPacket()
-            vsFtpPacket.type = VsPacket.TYPE_DATA
+            vsFtpPacket = vsftp.VsPacket()
+            vsFtpPacket.type = vsftp.VsPacket.TYPE_DATA
             vsFtpPacket.data = data
             if not self.rudpSocket.sendToAll(vsFtpPacket.pack()):
                 print "Transmission error, quiting"
@@ -60,8 +58,8 @@ class FileSender:
             # time.sleep(0)
         else:
             ''' Send END packet'''
-            vsFtpPacket = VsPacket()
-            vsFtpPacket.type = VsPacket.TYPE_END
+            vsFtpPacket = vsftp.VsPacket()
+            vsFtpPacket.type = vsftp.VsPacket.TYPE_END
             vsFtpPacket.data = data
             if not self.rudpSocket.sendToAll(vsFtpPacket.pack()):
                 print "Transmission error, quiting"

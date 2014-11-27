@@ -6,9 +6,7 @@ Created on May 10, 2013
 import time
 import sys
 
-import Rudp
-import Event
-from vsftp import VsPacket
+from Rudp import Rudp, Event, vsftp
 import Logging
 
 
@@ -30,7 +28,7 @@ class Receiver:
         Event.eventLoop()
 
     def receiveHandler(self, rudpSocket, senderAddress, data):
-        packet = VsPacket().unpack(data)
+        packet = vsftp.VsPacket().unpack(data)
         print ">> " + str(packet)
 
         ''' Get or create file info object'''
@@ -43,22 +41,22 @@ class Receiver:
             fileInfo.sender = senderAddress
             self.files.append(fileInfo)
 
-        ''' Handle different VSFTP pacekt types'''
-        if packet.type == VsPacket.TYPE_BEGIN:
+        ''' Handle different VSFTP packet types'''
+        if packet.type == vsftp.VsPacket.TYPE_BEGIN:
             if fileInfo.filename is not None:
                 print "File already open !!!!"
                 sys.exit(1)
 
             filename = packet.data
-            print "GOT PACKET BEGIN, openning fileToWrite for writing:" + filename
+            print "GOT PACKET BEGIN, opening fileToWrite for writing:" + filename
             fileInfo.filename = filename
             fileInfo.filehandle = open(filename, 'w')
             fileInfo.sendStarted = Event.getCurrentMills()
             pass
-        elif packet.type == VsPacket.TYPE_DATA:
+        elif packet.type == vsftp.VsPacket.TYPE_DATA:
             fileInfo.filehandle.write(packet.data)
             pass
-        elif packet.type == VsPacket.TYPE_END:
+        elif packet.type == vsftp.VsPacket.TYPE_END:
             print "GOT PACKET END, closing file"
             fileInfo.filehandle.close()
             self.files.remove(fileInfo)
