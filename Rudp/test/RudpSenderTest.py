@@ -7,7 +7,7 @@ import unittest
 import ntpath
 from random import randint
 
-from Rudp import RudpSender
+from Rudp.examples import RudpSender
 
 
 class TestSequenceFunctions(unittest.TestCase):
