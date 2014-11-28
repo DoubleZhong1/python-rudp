@@ -1,118 +1,114 @@
 from packet import Packet
+from linkedlist import LinkedList
 import constants
-import helpers
-import math
-import random
 
 from pyee import EventEmitter
 
 
-class Window():
+class Receiver():
 
-    def __init__(self, packets):
-        print 'Init Window'
+    def __init__(self, packet_sender):
+        print 'Init Receiver'
+
+        # TODO: have this be a DuplexStream instead of an EventEmitter.
+        # TODO: the Receiver should never send raw packets to the end host. It should
+        #      only be acknowledgement packets. Please see [1]
 
         self.ee = EventEmitter()
 
-        self._packets = packets
+        self._synced = False
+        self._next_sequence_number = 0
 
-    def send(self):
-        # Our packets to send.
-        pkts = self._packets
+        def sort_by_sequence(packet_a, packet_b):
+            return packet_a.get_sequence_number() - packet_b.get_sequence_number()
 
-        # The initial synchronization packet. Always send this first.
-        self._synchronization_packet = pkts.pop(0)
-
-        # The final reset packet. It can be equal to the synchronization packet.
-        self._reset_packet = pkts.pop() if len(pkts) else self._synchronization_packet
-
-        # This means that the reset packet's acknowledge event thrown will be
-        # different from that of the synchronization packet.
-        if self._reset_packet is not self._synchronization_packet:
-            @self._reset_packet.ee.on('acknowledge')
-            def on_acknowledge():
-                self.ee.emit('done')
-
-        # Will be used to handle the case when all non sync or reset packets have
-        # been acknowledged.
-        @self._synchronization_packet.on('acknowledge')
-        def on_sync_knowledge():
-            # We will either notify the owning class that this window has finished
-            # sending all of its packets (that is, if this window only had one packet
-            # in it), or keep looping through each each non sync-reset packets until
-            # they have been acknowledged.
-            if self._reset_packet is self._synchronization_packet:
-                self.ee.emit('done')
-                return
-            elif len(pkts) is 0:
-                # This means that this window only had two packets, and the second one
-                # was a reset packet.
-                self._reset_packet.send()
-                return
-
-            @self.ee.on('acknowledge')
-            def on_sender_acknowledge():
-                # This means that it is now time to send the reset packet.
-                self._reset_packet.send()
-
-            # And if there are more than two packets in this window, then send all
-            # other packets.
-            self.acknowledged = 0
-
-            for packet in pkts:
-                @packet.ee.on('acknowledge')
-                def on_packet_acknowledge():
-                    self.acknowledged += 1
-                    if self.acknowledged is len(pkts):
-                        self.ee.emit('acknowledge')
-
-                packet.send()
-
-        self._synchronization_packet.send()
-
-    def verify_acknowledgement(self, sequence_number):
-        for i in range(0, len(self._packets)):
-            if self._packets[i].get_sequence_number() is sequence_number:
-                self._packets[i].acknowledge()
-
-
-class Sender:
-
-    def __init__(self, packet_sender):
-        print 'Init Sender'
-
+        self._packets = LinkedList(sort_by_sequence)
         self._packet_sender = packet_sender
-        self._windows = []
-        self._sending = None
+        self._closed = False
 
 
-    def send(self, data):
-        chunks = helpers.splitArrayLike(data, constants.UDP_SAFE_SEGMENT_SIZE)
-        windows = helpers.splitArrayLike(chunks, constants.WINDOW_SIZE)
-        self._windows = self._windows.append(windows)
-        self._push()
+    def receive(self, packet):
+        if self._closed:
+            # Since this is closed, don't do anything.
+            return
 
-    def _push(self):
-        if not self._sending and len(self._windows):
-            self._base_sequence_number = math.floor(random.random() * (constants.MAX_SIZE - constants.WINDOW_SIZE))
-            window = self._windows.pop(0)
+        # Ignores packets that have a sequence number less than the next sequence
+        # number
+        if not packet.getIsSynchronize() and packet.getSequenceNumber() < self._sync_sequence_number:
+            return
 
-            def get_packet(data, i):
-                packet = Packet(i + self._base_sequence_number, data, not i, i is (window.length - 1))
-                return PendingPacket(packet, self._packet_sender);
+        if packet.getIsSynchronize() and not self._synced:
+            # This is the beginning of the stream.
 
-            to_send = Window(window.map(get_packet))
+            if packet.getSequenceNumber() is self._sync_sequence_number:
+              self._packet_sender.send(Packet.createAcknowledgementPacket(packet.getSequenceNumber()))
+              return
 
-            self._sending = to_send
+            # Send the packet upstream, send acknowledgement packet to end host, and
+            # increment the next expected packet.
+            self._packets.clear()
+            self.ee.emit('data', packet.getPayload())
+            self._packet_sender.send(Packet.createAcknowledgementPacket(packet.getSequenceNumber()))
+            self._packets.insert(packet)
+            self._next_sequence_number = packet.getSequenceNumber() + 1
+            self._synced = True
+            self._sync_sequence_number = packet.getSequenceNumber()
 
-            # On done event set sending to null and push
-            # self._sending.on('done', function () {
-            #     self._sending = null
-            #     self._push()
-            # })
 
-            to_send.send()
+            if packet.getIsReset():
+                self.ee.emit('_reset')
+                self._synced = False
 
-    def verifyAcknowledgement(self, sequence_number):
-        if self._sending:
-            self._sending.verifyAcknowledgement(sequence_number)
+            # We're done.
+            return
+
+        elif (packet.getIsReset()):
+            self.ee.emit('_reset')
+            self.ee._synced = False
+
+        elif not self._synced:
+            # If we are not synchronized with sender, then this means that we should
+            # wait for the end host to send a synchronization packet.
+
+            # We are done.
+            return
+
+        elif packet.getSequenceNumber() < self._syncSequenceNumber:
+            # This is a troll packet. Ignore it.
+            return
+
+        elif packet.getSequenceNumber() >= (self._packets.currentValue().getSequenceNumber() + constants.WINDOW_SIZE):
+            # This means that the next packet received is not within the window size.
+            self.ee.emit('_window_size_exceeded')
+            return
+
+        # This means that we should simply insert the packet. If the packet's
+        # sequence number is the one that we were expecting, then send it upstream,
+        # acknowledge the packet, and increment the next expected sequence number.
+        #
+        # Once acknowledged, check to see if there aren't any more pending packets
+        # after the current packet. If there are, then check to see if the next
+        # packet is the expected packet number. If it is, then start the
+        # acknowledgement process anew.
+
+        result = self._packets.insert(packet)
+
+        if result is LinkedList.InsertionResult.INSERTED:
+            self._pushIfExpectedSequence(packet)
+        elif result is LinkedList.InsertionResult.EXISTS:
+            self._packet_sender.send(Packet.createAcknowledgementPacket(packet.getSequenceNumber()))
+
+    def _pushIfExpectedSequence(self, packet):
+        if packet.get_sequence_number() is self._next_sequence_number:
+            self.ee.emit('data', packet.getPayload())
+            # [1] Never send packets directly!
+            self._packet_sender.send(Packet.createAcknowledgementPacket(packet.getSequenceNumber()))
+            self._nextSequenceNumber += 1
+            self._packets.seek()
+            if self._packets.hasNext():
+              self._pushIfExpectedSequence(self._packets.nextValue())
+
+
+    def end(self):
+        self._closed = True
+        self.ee.emit('end')

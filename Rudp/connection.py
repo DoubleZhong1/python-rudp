@@ -1,20 +1,29 @@
-from Rudp.packet import Packet
+from packet import Packet
+from sender import Sender
+from receiver import Receiver
+
+from pyee import EventEmitter
 
 
-class PacketSender:
+class Connection:
 
-    def __init__(self, socket, address, port):
-        print 'Init PacketSender'
+    def __init__(self, packet_sender):
+        print 'Init Connection'
 
-        assert socket, 'No socket'
-        assert address, 'No address'
-        assert port, 'No port'
+        self.ee = EventEmitter()
 
-        self._socket = socket
-        self._address = address
-        self._port = port
+        self._sender = Sender(packet_sender)
+        self._receiver = Receiver(packet_sender)
 
+        @self._receiver.ee.on('data')
+        def on_data(data):
+            self.ee.emit('data', data)
 
-    def send(self, packet):
-        buffer = packet.toBuffer()
-        self._socket.send(buffer, 0, buffer.length, self._port, self._address)
+    def send(self, data):
+        self._sender.send(data)
+
+    def receive(self, packet):
+        if packet.getIsAcknowledgement():
+            self._sender.verifyAcknowledgement(packet.getSequenceNumber())
+        else:
+            self._receiver.receive(packet)
