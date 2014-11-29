@@ -21,13 +21,13 @@ class Window():
         # Our packets to send.
         pkts = self._packets
 
-        print pkts
-
         # The initial synchronization packet. Always send this first.
         self._synchronization_packet = pkts.pop(0)
+        self._synchronization_packet = self._synchronization_packet.pop()
 
         # The final reset packet. It can be equal to the synchronization packet.
         self._reset_packet = pkts.pop() if len(pkts) else self._synchronization_packet
+        self._reset_packet = self._reset_packet.pop()
 
         # This means that the reset packet's acknowledge event thrown will be
         # different from that of the synchronization packet.
@@ -38,7 +38,7 @@ class Window():
 
         # Will be used to handle the case when all non sync or reset packets have
         # been acknowledged.
-        @self._synchronization_packet.on('acknowledge')
+        @self._synchronization_packet.ee.on('acknowledge')
         def on_sync_knowledge():
             # We will either notify the owning class that this window has finished
             # sending all of its packets (that is, if this window only had one packet

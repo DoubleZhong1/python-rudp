@@ -8,15 +8,22 @@ class Packet:
 
         self.ee = EventEmitter()
 
-        self.segment = sequence_number
-        self.offset = 0
+        if isinstance(sequence_number, Buffer):
+            self.segment = sequence_number
+            self.offset = 0
 
-        self._acknowledgement = False
-        self._synchronize = bool(synchronize)
-        self._finish = False
-        self._reset = bool(reset)
-        self._sequenceNumber = sequence_number
-        self._payload = payload
+            bools = bin(self.segment)
+
+        else:
+            self.segment = sequence_number
+            self.offset = 0
+
+            self._acknowledgement = False
+            self._synchronize = bool(synchronize)
+            self._finish = False
+            self._reset = bool(reset)
+            self._sequenceNumber = sequence_number
+            self._payload = payload
 
     @staticmethod
     def createAcknowledgementPacket(sequenceNumber):

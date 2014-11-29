@@ -20,5 +20,5 @@ class PacketSender:
         #buffer = packet.toBuffer()
         buffer = packet
 
-        self._socket.sendto(buffer, (self._address, self._port))
+        self._socket.sendto(buffer._payload, (self._address, self._port))
         # self._socket.send(buffer, 0, buffer.length, self._port, self._address)
