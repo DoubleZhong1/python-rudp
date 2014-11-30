@@ -23,11 +23,9 @@ class Window():
 
         # The initial synchronization packet. Always send this first.
         self._synchronization_packet = pkts.pop(0)
-        self._synchronization_packet = self._synchronization_packet.pop()
 
         # The final reset packet. It can be equal to the synchronization packet.
         self._reset_packet = pkts.pop() if len(pkts) else self._synchronization_packet
-        self._reset_packet = self._reset_packet.pop()
 
         # This means that the reset packet's acknowledge event thrown will be
         # different from that of the synchronization packet.
@@ -99,21 +97,19 @@ class Sender:
             self._base_sequence_number = math.floor(random.random() * (constants.MAX_SIZE - constants.WINDOW_SIZE))
             window = self._windows.pop(0)
 
-            def get_packet(i, data):
-                packet = Packet(float(i) + self._base_sequence_number, data, not i, i is (len(window) - 1))
+            def get_packet(i, pdata):
+                packet = Packet(float(i) + self._base_sequence_number, pdata, not i, i is (len(window) - 1))
                 return PendingPacket(packet, self._packet_sender)
 
-            win = [{get_packet(i, data)} for i, data in enumerate(window)]
-
+            win = [get_packet(i, data) for i, data in enumerate(window)]
             to_send = Window(win)
 
             self._sending = to_send
 
-            # On done event set sending to null and push
-            # self._sending.on('done', function () {
-            #     self._sending = null
-            #     self._push()
-            # })
+            @self._sending.ee.on('done')
+            def on_done():
+                self._sending = None
+                self._push()
 
             to_send.send()
 
