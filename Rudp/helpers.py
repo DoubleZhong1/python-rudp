@@ -1,16 +1,16 @@
 __author__ = 'brianhoffman'
 
 import threading
-
+import math
 
 def splitArrayLike(data, length):
     length = length or 1
     retval = []
 
-    data = bytearray(data)
-    print 'arr', type(data)
+    blocks = int(math.ceil(len(data) / length))
+    blocks += 1
 
-    for i in range(0, len(data)):
+    for i in range(0, blocks):
         retval.append(data[i:i + length])
 
     return retval
