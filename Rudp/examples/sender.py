@@ -19,6 +19,8 @@ while 1:
     if not data:
         break
 
+    data = data.encode('utf-8')
+
     client.send(data)
     print data.strip()
 
