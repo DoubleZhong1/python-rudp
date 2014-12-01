@@ -1,9 +1,12 @@
 from pyee import EventEmitter
+import struct
+import ctypes
+import binascii
 
 
 class Packet:
 
-    def __init__(self, sequence_number, payload, synchronize, reset=None):
+    def __init__(self, sequence_number, payload=None, synchronize=None, reset=None):
         print 'Init Packet'
 
         self.ee = EventEmitter()
@@ -43,3 +46,21 @@ class Packet:
     def get_sequence_number(self):
         return self._sequenceNumber
 
+    def to_buffer(self):
+        offset = 0
+
+        bools = 0 + (
+            (self._acknowledgement and 0x80) |
+            (self._synchronize and 0x40) |
+            (self._finish and 0x20) |
+            (self._reset and 0x10)
+        )
+
+        values = (bools, self._sequenceNumber, self._payload)
+
+        buffer = struct.Struct('I f %ds' % len(self._payload))
+
+        b = ctypes.create_string_buffer(buffer.size)
+        buffer.pack_into(b, offset, *values)
+
+        return binascii.hexlify(b.raw)
